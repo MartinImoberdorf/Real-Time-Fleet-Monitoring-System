@@ -1,0 +1,28 @@
+Real-Time Fleet Monitoring System
+Objetivo
+
+Un sistema que recibe, procesa y analiza en tiempo real los datos de una flota de vehículos o dispositivos IoT.
+Cada vehículo envía telemetría (posición GPS, velocidad, temperatura del motor, nivel de batería, etc.).
+Con Kafka, procesás los eventos en streaming, detectás anomalías o generás alertas instantáneas.
+
+| Servicio                          | Rol                                                                                     | Tecnologías sugeridas                                          |
+| --------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **1️⃣ Vehicle Telemetry Service** | Genera y publica datos simulados en Kafka (por ejemplo, cada 2 s).                      | Spring Boot, Kafka Producer API, Faker (para datos aleatorios) |
+| **2️⃣ Stream Processor Service**  | Consume los mensajes, analiza patrones y genera alertas (por ej., exceso de velocidad). | Spring Boot, Kafka Streams, Avro/JSON Schema                   |
+| **3️⃣ Alert Service**             | Escucha las alertas y las guarda en una DB o las envía por WebSocket.                   | Spring Boot, PostgreSQL, Kafka Consumer                        |
+| **4️⃣ Dashboard (opcional)**      | Muestra en vivo la ubicación y estado de los vehículos.                                 | React + WebSocket o REST API                                   |
+
+
+⚙️ Flujo de datos completo
+
+1️⃣ VehicleTelemetryService → envía datos en tiempo real a Kafka.
+2️⃣ StreamProcessorService → limpia / transforma datos.
+3️⃣ MLService → analiza y predice eventos anómalos usando un modelo entrenado.
+4️⃣ AlertService → recibe esas predicciones y genera alertas.
+
+🧠 ¿Qué rol tendría el modelo ML?
+
+Tu ML model sería parte de un servicio adicional:
+
+Servicio	Rol
+5️⃣ ML Anomaly Detection Service	Consume los datos de Kafka y detecta comportamientos anómalos o predice fallas futuras (por ej., si un vehículo está por sobrecalentarse o si hay riesgo de accidente).
