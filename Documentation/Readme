@@ -1,6 +1,7 @@
 Real-Time Fleet Monitoring System
+---------------------------------
 Objetivo
-
+--------
 Un sistema que recibe, procesa y analiza en tiempo real los datos de una flota de vehículos o dispositivos IoT.
 Cada vehículo envía telemetría (posición GPS, velocidad, temperatura del motor, nivel de batería, etc.).
 Con Kafka, procesás los eventos en streaming, detectás anomalías o generás alertas instantáneas.
@@ -26,3 +27,16 @@ Tu ML model sería parte de un servicio adicional:
 
 Servicio	Rol
 5️⃣ ML Anomaly Detection Service	Consume los datos de Kafka y detecta comportamientos anómalos o predice fallas futuras (por ej., si un vehículo está por sobrecalentarse o si hay riesgo de accidente).
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MEJORAS PARA: VehicleTelemetryService
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Mejora                                     | Descripción                                                             |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| **Persistencia en Cassandra o PostgreSQL** | Guarda los mensajes en una DB distribuida.                              |
+| **Kafka Streams**                          | Procesa los datos en tiempo real (promedios, alertas, anomalías).       |
+| **Alert Engine**                           | Detecta comportamientos extraños (temperatura alta, velocidad > X).     |
+| **Grafana o Kibana Dashboard**             | Visualiza métricas del flujo Kafka en tiempo real.                      |
+| **AuthService (JWT)**                      | Agregá autenticación a los WebSockets.                                  |
+| **Infra con Docker Compose completo**      | Incluye Kafka, Zookeeper, Spring Producer, Spring Consumer, y frontend. |

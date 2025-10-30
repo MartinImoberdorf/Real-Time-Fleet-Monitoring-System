@@ -1,8 +1,10 @@
 package com.martin.vehicle_telemetry_service.services;
 
+import com.martin.vehicle_telemetry_service.kafka.producer.KafkaProducer;
 import com.martin.vehicle_telemetry_service.model.entity.VehicleData;
 import com.martin.vehicle_telemetry_service.publisher.VehicleWebSocketPublisher;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -10,12 +12,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Random;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TelemetrySimulator {
     private final VehicleWebSocketPublisher publisher;
     private final Random random = new Random();
     private final List<String> vehicles = List.of("CAR-001","CAR-002","CAR-003","CAR-004");
+    private final KafkaProducer kafkaProducer;
 
     @Scheduled(fixedRate = 4000)
     public void generateTelemetry() {
@@ -38,7 +42,8 @@ public class TelemetrySimulator {
                 .battery(battery)
                 .fuelLevel(fuel)
                 .build();
+        kafkaProducer.sendVehicleData("vehicle-telemetry", data); // Enviar a Kafka
         publisher.sendVehicleData(data);
-        System.out.println("🚗 Enviado...");
+        log.info("Generated telemetry: {}", data);
     }
 }
