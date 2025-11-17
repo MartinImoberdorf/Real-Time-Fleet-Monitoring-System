@@ -1,8 +1,8 @@
 package com.martin.vehicle_telemetry_service.services;
 
+
+import com.martin.model.VehicleData;
 import com.martin.vehicle_telemetry_service.kafka.producer.KafkaProducer;
-import com.martin.vehicle_telemetry_service.model.entity.VehicleData;
-import com.martin.vehicle_telemetry_service.publisher.VehicleWebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,7 +16,6 @@ import java.util.Random;
 @Service
 @RequiredArgsConstructor
 public class TelemetrySimulator {
-    private final VehicleWebSocketPublisher publisher;
     private final Random random = new Random();
     private final List<String> vehicles = List.of("CAR-001","CAR-002","CAR-003","CAR-004");
     private final KafkaProducer kafkaProducer;
@@ -43,7 +42,6 @@ public class TelemetrySimulator {
                 .fuelLevel(fuel)
                 .build();
         kafkaProducer.sendVehicleData("vehicle-telemetry", data); // Enviar a Kafka
-        publisher.sendVehicleData(data);
         log.info("Generated telemetry: {}", data);
     }
 }
