@@ -1,0 +1,14 @@
+-------------------------------------------------------------------
+                    Stream Processor Service
+-------------------------------------------------------------------
+
+Consume los mensajes, analiza patrones y genera alertas (por ej., exceso de velocidad)
+
+
+
+
+
+#############################
+Notes
+#############################
+port:8081
