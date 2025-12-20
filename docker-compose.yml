@@ -20,4 +20,13 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    
+
+  inference-service:
+    build: ./llm-anomalies-detection
+    container_name: llm-anomalies-detection
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+    environment:
+      PYTHONUNBUFFERED: 1

@@ -9,39 +9,136 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TelemetrySimulator {
+
     private final Random random = new Random();
-    private final List<String> vehicles = List.of("CAR-001","CAR-002","CAR-003","CAR-004");
     private final KafkaProducer kafkaProducer;
 
+    // Generamos 10 vehículos con IDs tipo "4AB843"
+    private final List<String> vehicles = generateRandomVehicleIds(10);
+
+    // Estado previo para aceleración
+    private final Map<String, Double> lastSpeedMap = new HashMap<>();
+
+    // --------------------------
+    // GENERADOR DE IDS
+    // --------------------------
+    private List<String> generateRandomVehicleIds(int count) {
+        List<String> list = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            list.add(generateId());
+        }
+        return list;
+    }
+
+    private String generateId() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder(6);
+        for (int i = 0; i < 6; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
+    // --------------------------
+    // GENERADOR TELEMETRY
+    // --------------------------
     @Scheduled(fixedRate = 4000)
     public void generateTelemetry() {
         vehicles.forEach(this::generateVehicleData);
     }
 
     private void generateVehicleData(String vehicleId) {
-        double baseSpeed = 60 + random.nextGaussian() * 20;   // curva normal
-        double temp = 75 + random.nextGaussian() * 10;
-        double battery = 80 - random.nextDouble() * 0.2;      // lenta descarga
-        double fuel = 100 - random.nextDouble() * 0.5;        // consumo gradual
+
+        String weather = pick(weatherOptions());
+        String roadType = pick(List.of("urban", "highway", "rural"));
+        boolean night = random.nextBoolean();
+        int traffic = random.nextInt(5) + 1;
+
+        double speedLimit = switch (roadType) {
+            case "highway" -> 120;
+            case "urban" -> 60;
+            default -> 90;
+        };
+
+        double baseSpeed = generateBaseSpeed(speedLimit);
+        double temperature = 70 + random.nextGaussian() * 5;
+        double battery = 80 - random.nextDouble() * 0.5;
+        double fuel = 100 - random.nextDouble() * 0.8;
+
+        double previousSpeed = lastSpeedMap.getOrDefault(vehicleId, baseSpeed);
+        double acceleration = baseSpeed - previousSpeed;
+        lastSpeedMap.put(vehicleId, baseSpeed);
+
+        boolean anomaly = false;
+        String anomalyType = null;
+
+        if (random.nextDouble() < 0.05) {
+            int type = random.nextInt(3);
+
+            switch (type) {
+                case 0 -> {
+                    baseSpeed = speedLimit + 50 + random.nextDouble() * 30;
+                    anomaly = true;
+                    anomalyType = "overspeed";
+                }
+                case 1 -> {
+                    temperature = 110 + random.nextDouble() * 30;
+                    anomaly = true;
+                    anomalyType = "engine_overheat";
+                }
+                case 2 -> {
+                    battery = 10 + random.nextDouble() * 5;
+                    anomaly = true;
+                    anomalyType = "battery_low";
+                }
+            }
+        }
 
         VehicleData data = VehicleData.builder()
                 .vehicleId(vehicleId)
                 .timestamp(Instant.now())
-                .latitude(-31.4201 + random.nextDouble()/100)
-                .longitude(-64.1888 + random.nextDouble()/100)
-                .speed(Math.max(0, baseSpeed))
-                .temperature(temp)
+                .latitude(-31.4201 + random.nextDouble() / 100)
+                .longitude(-64.1888 + random.nextDouble() / 100)
+
+                .speed(baseSpeed)
+                .previousSpeed(previousSpeed)
+                .acceleration(acceleration)
+
+                .temperature(temperature)
                 .battery(battery)
                 .fuelLevel(fuel)
+
+                .weather(weather)
+                .roadType(roadType)
+                .speedLimit(speedLimit)
+                .night(night)
+                .trafficLevel(traffic)
+
+                .anomaly(anomaly)
+                .anomalyType(anomalyType)
                 .build();
-        kafkaProducer.sendVehicleData("vehicle-telemetry", data); // Enviar a Kafka
-        log.info("Generated telemetry: {}", data);
+
+        kafkaProducer.sendVehicleData("vehicle-telemetry", data);
+        log.info("{}", data);
+    }
+
+    private List<String> weatherOptions() {
+        return List.of("clear", "rain", "fog", "storm");
+    }
+
+    private String pick(List<String> list) {
+        return list.get(random.nextInt(list.size()));
+    }
+
+    private double generateBaseSpeed(double limit) {
+        double base = limit * 0.6 + random.nextGaussian() * 10;
+        return Math.max(0, base);
     }
 }
+
