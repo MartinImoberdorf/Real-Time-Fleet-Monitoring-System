@@ -62,13 +62,11 @@
 			<version>1.0.0</version>
 		</dependency>
 
-		<!-- Excel processing -->
+		<!-- WebClient (reactive HTTP client) -->
 		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml</artifactId>
-			<version>5.2.3</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
-
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

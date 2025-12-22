@@ -3,33 +3,40 @@ from pydantic import BaseModel
 import numpy as np
 import pickle
 import os
+from contextlib import asynccontextmanager
+import traceback
 
 app = FastAPI()
 
 # --------------------------
-# Modelo
+# Componentes del modelo
 # --------------------------
-model = None
+autoencoder_model = None
+scaler = None
+anomaly_threshold = None
 
-# Threshold calculado como percentil 95
-ANOMALY_THRESHOLD = 0.8574
-
-@app.on_event("startup")
-def load_model():
-    global model
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global autoencoder_model, scaler, anomaly_threshold
     model_path = os.getenv("MODEL_PATH", "model.pkl")
 
     try:
         with open(model_path, "rb") as f:
-            model = pickle.load(f)
-
-        print("✅ Modelo cargado correctamente")
-
+            loaded_data = pickle.load(f)
+            autoencoder_model = loaded_data['autoencoder_model']
+            scaler = loaded_data['scaler']
+            anomaly_threshold = loaded_data['threshold']
+        print("✅ Componentes del modelo cargados correctamente")
     except Exception as e:
-        raise RuntimeError(f"Error cargando el modelo: {e}")
+        print(f"ERROR during lifespan startup - Error loading model components: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al cargar los componentes del modelo: {e}")
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # --------------------------
-# Input schema
+# Esquema de entrada
 # --------------------------
 class DataPoint(BaseModel):
     latitude: float
@@ -50,7 +57,9 @@ class DataPoint(BaseModel):
 def health():
     return {
         "status": "ok",
-        "model_loaded": model is not None
+        "model_loaded": autoencoder_model is not None,
+        "scaler_loaded": scaler is not None,
+        "threshold_loaded": anomaly_threshold is not None
     }
 
 # --------------------------
@@ -59,35 +68,62 @@ def health():
 @app.post("/predict")
 def predict(data: DataPoint):
 
-    if model is None:
-        raise HTTPException(status_code=500, detail="Model not loaded")
+    if autoencoder_model is None or scaler is None or anomaly_threshold is None:
+        print("ERROR: Model or components not loaded completely in predict function.")
+        raise HTTPException(status_code=500, detail="Modelo o componentes no cargados completamente.")
 
-    # Mismo orden que en el entrenamiento
-    x = np.array([
-        data.latitude,
-        data.longitude,
-        data.speed,
-        data.previousSpeed,
-        data.acceleration,
-        data.temperature,
-        data.battery,
-        data.fuelLevel,
-        data.speedLimit,
-        data.trafficLevel
-    ], dtype=np.float32).reshape(1, -1)
+    try:
+        # Crear array numpy con el mismo orden de características que en el entrenamiento
+        input_array = np.array([
+            data.latitude,
+            data.longitude,
+            data.speed,
+            data.previousSpeed,
+            data.acceleration,
+            data.temperature,
+            data.battery,
+            data.fuelLevel,
+            data.speedLimit,
+            data.trafficLevel
+        ], dtype=np.float32).reshape(1, -1)
+        print(f"DEBUG: input_array shape: {input_array.shape}, dtype: {input_array.dtype}")
 
-    # Reconstrucción con autoencoder
-    x_hat = model.predict(x, verbose=0)
+        # Escalar la entrada usando el scaler cargado
+        scaled_input = scaler.transform(input_array)
+        print(f"DEBUG: scaled_input shape: {scaled_input.shape}, dtype: {scaled_input.dtype}")
 
-    # Error de reconstrucción (MSE)
-    reconstruction_error = float(
-        np.mean(np.square(x - x_hat))
-    )
+        # Reconstrucción con autoencoder (se pasa la entrada escalada)
+        reconstructed_input = autoencoder_model.predict(scaled_input, verbose=0)
+        print(f"DEBUG: reconstructed_input shape: {reconstructed_input.shape}, dtype: {reconstructed_input.dtype}")
 
-    # Regla EXACTA de anomalía
-    is_anomaly = reconstruction_error > ANOMALY_THRESHOLD
+        # Error de reconstrucción (MSE) entre la entrada ESCALADA y la salida RECONSTRUIDA ESCALADA
+        reconstruction_error = float(
+            np.mean(np.square(scaled_input - reconstructed_input))
+        )
+        print(f"DEBUG: reconstruction_error: {reconstruction_error}")
 
-    return {
-        "reconstruction_error": reconstruction_error,
-        "is_anomaly": is_anomaly
-    }
+        # Regla de anomalía usando el umbral cargado
+        is_anomaly = bool(reconstruction_error > anomaly_threshold) # Convertir a bool estándar de Python
+        print(f"DEBUG: anomaly_threshold: {anomaly_threshold}, is_anomaly: {is_anomaly}")
+
+        return {
+            "input": {
+                "latitude": data.latitude,
+                "longitude": data.longitude,
+                "speed": data.speed,
+                "previousSpeed": data.previousSpeed,
+                "acceleration": data.acceleration,
+                "temperature": data.temperature,
+                "battery": data.battery,
+                "fuelLevel": data.fuelLevel,
+                "speedLimit": data.speedLimit,
+                "trafficLevel": data.trafficLevel
+            },
+            "reconstruction_error": reconstruction_error,
+            "anomaly_threshold": anomaly_threshold,
+            "is_anomaly": is_anomaly
+        }
+    except Exception as e:
+        print(f"ERROR in predict endpoint processing: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al procesar la predicción: {str(e)}")
