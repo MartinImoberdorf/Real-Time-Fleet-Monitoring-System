@@ -1,0 +1,11 @@
+# Ejemplo de datos que son probablemente 'normales' (valores cercanos al promedio del dataset de entrenamiento)
+print("Probando con datos normales:")
+!curl -X POST http://localhost:9000/predict -H "Content-Type: application/json" -d '{"latitude": -31.413947, "longitude": -64.187577, "speed": 30.768334, "previousSpeed": 39.896814, "acceleration": -9.128480, "temperature": 77.649027, "battery": 79.832590, "fuelLevel": 99.512347, "speedLimit": 60.0, "trafficLevel": 3.0}'
+
+print("\n\nProbando con datos que podrían ser anómalos (por ejemplo, speed muy alta y trafficLevel muy bajo):")
+# Ejemplo de datos que podrían ser 'anómalos' (speed muy alta, acceleration muy alta, etc.)
+!curl -X POST http://localhost:9000/predict -H "Content-Type: application/json" -d '{"latitude": -31.410000, "longitude": -64.180000, "speed": 150.0, "previousSpeed": 100.0, "acceleration": 50.0, "temperature": 90.0, "battery": 50.0, "fuelLevel": 10.0, "speedLimit": 120.0, "trafficLevel": 1.0}'
+
+print("\n\nProbando el endpoint de salud:")
+!curl http://localhost:9000/health
+

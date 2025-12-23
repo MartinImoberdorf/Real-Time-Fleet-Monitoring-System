@@ -1,14 +1,16 @@
 package com.martin.stream_processor_service.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.martin.model.VehicleData;
 import com.martin.stream_processor_service.client.PredictionClient;
+import com.martin.stream_processor_service.config.TelemetryWebSocketHandler;
 import com.martin.stream_processor_service.model.dto.PredictionRequest;
+import com.martin.stream_processor_service.model.dto.PredictionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import java.util.ArrayList;
-import java.util.List;
 
 
 @Slf4j
@@ -17,21 +19,49 @@ import java.util.List;
 public class StreamProcessorService {
 
     private final PredictionClient predictionClient;
+    @Autowired
+    private final TelemetryWebSocketHandler wsHandler;
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @KafkaListener(topics = "vehicle-telemetry", groupId = "vehicle-processor-group")
     public void consumeVehicleData(VehicleData data) {
 
         PredictionRequest request = PredictionRequest.fromVehicleData(data);
 
-        // Asíncrono, no bloquea el listener
         predictionClient.predict(request)
                 .subscribe(
-                        response -> log.info("🤖 ML response vehicle {} → {}", data.getVehicleId(), response),
+                        response -> {
+                            try {
+                                // Parse the response JSON
+                                PredictionResponse predictionResponse = mapper.readValue(response, PredictionResponse.class);
+
+                                // Extract the input field and map it to VehicleData
+                                VehicleData vehicleData = mapper.convertValue(predictionResponse.getInput(), VehicleData.class);
+
+                                // Copy missing fields from the original data
+                                vehicleData.setVehicleId(data.getVehicleId());
+                                vehicleData.setTimestamp(data.getTimestamp());
+                                vehicleData.setWeather(data.getWeather());
+                                vehicleData.setRoadType(data.getRoadType());
+                                vehicleData.setAnomaly(predictionResponse.isAnomaly());
+                                vehicleData.setAnomalyType(data.getAnomalyType());
+
+                                // Send the telemetry data
+                                wsHandler.sendTelemetry(vehicleData);
+                                log.info("--------------------------------");
+                                log.info("Received VehicleData: {}", data);
+                                log.info("--------------------------------");
+                                log.info("Prediction Response: {}", response);
+                                log.info("--------------------------------");
+                                log.info("Sending telemetry data: {}", vehicleData);
+                            } catch (Exception e) {
+                                log.error("❌ Failed to parse response to VehicleData: {}", e.getMessage());
+                            }
+                        },
                         error -> log.error("❌ ML error vehicle {}: {}", data.getVehicleId(), error.getMessage())
                 );
     }
-
-
-
 }
+
 
