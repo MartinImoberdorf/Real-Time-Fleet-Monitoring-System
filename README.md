@@ -67,8 +67,22 @@ Traditional request-response architectures do not scale well for this type of wo
 ---
 
 ## 🧠 Machine Learning Approach
+### 1. Data Processing
+* **Feature Engineering:** The model processes critical telemetry metrics: `speed`, `acceleration`, `temperature`, `fuelLevel`, and `trafficLevel`.
+* **Normalization:** Data is scaled using `StandardScaler` to ensure that features with different magnitudes (e.g., temperature vs. fuel level) contribute equally to the error calculation.
 
-The platform utilizes **Unsupervised Anomaly Detection** via **Autoencoders**.
+### 2. Autoencoder Architecture
+The system uses a **Deep Autoencoder** implemented in Python (TensorFlow/Keras).
+* **Encoder:** Compresses the input telemetry into a lower-dimensional "latent space", capturing the essential correlations between driving variables.
+* **Decoder:** Attempts to reconstruct the original input from this compressed representation.
+
+### 3. Training Strategy
+* **Dataset:** Trained exclusively on "normal" driving patterns.
+* **Objective:** Minimize the **Mean Squared Error (MSE)** between the input and the reconstructed output.
+* **Thresholding:** After training, a percentile-based threshold is calculated to define the boundary of "normal" behavior.
+
+### 4. Mathematical Foundation
+The model detects anomalies by measuring the difficulty of reconstructing the data:
 
 * **Logic:** The model attempts to reconstruct the input telemetry. 
 * **Detection:** If the input is "strange" (out of distribution), the model fails to reconstruct it accurately.
