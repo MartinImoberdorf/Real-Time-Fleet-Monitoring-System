@@ -1,13 +1,10 @@
-// Función para detectar si el dispositivo es móvil/tablet
 function isMobileDevice() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
          (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) ||
          ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 }
 
-// Verificar si es dispositivo móvil y bloquear el acceso
 if (isMobileDevice()) {
-  // Ocultar el contenido principal y mostrar mensaje de error
   document.body.innerHTML = `
     <div class="min-h-screen bg-slate-900 flex items-center justify-center px-4">
       <div class="bg-slate-800 rounded-xl shadow-2xl border border-red-700 p-8 max-w-md text-center">
@@ -27,19 +24,22 @@ if (isMobileDevice()) {
     </div>
   `;
 } else {
-  // Solo ejecutar el código de la aplicación si es PC
   const wsUrl = "ws://localhost:8082/ws/telemetry";
   const statusEl = document.getElementById("status");
   const tableBody = document.getElementById("telemetry-body");
   const anomalyBody = document.getElementById("anomaly-body");
   const normalCountEl = document.getElementById("normal-count");
   const anomalyCountEl = document.getElementById("anomaly-count");
+  const vehicleDetailsEl = document.getElementById("vehicle-details");
+  const vehicleDetailsContentEl = document.getElementById("vehicle-details-content");
+  const selectedVehicleIdEl = document.getElementById("selected-vehicle-id");
   const maxRows = 100;
   let messageCount = 0;
   let ws = null;
-  let reconnectInterval = 5000; // Tiempo entre intentos de reconexión (5 segundos)
+  let reconnectInterval = 5000;
+  // Almacenar los datos completos de cada vehículo por su ID
+  const vehicleDataMap = new Map(); 
 
-  // Helper function to safely format values
   function formatValue(value, isNumber = false, decimals = 1, suffix = '') {
     if (value === null || value === undefined) return '-';
     if (isNumber && typeof value === 'number') {
@@ -48,7 +48,7 @@ if (isMobileDevice()) {
     return String(value);
   }
 
-  // Helper function to update status with Tailwind classes
+
   function updateStatus(message, type = 'info') {
     statusEl.textContent = message;
     statusEl.className = 'px-4 py-2 rounded-lg font-semibold border transition-colors duration-300 ';
@@ -67,6 +67,17 @@ if (isMobileDevice()) {
         break;
       default:
         statusEl.className += 'bg-slate-800 border-slate-700 text-gray-300';
+    }
+  }
+
+  function showVehicleDetails(vehicleId) {
+    const vehicleData = vehicleDataMap.get(vehicleId);
+    if (vehicleData) {
+      vehicleDetailsEl.classList.remove('hidden');
+      selectedVehicleIdEl.textContent = `Vehicle ID: ${vehicleId}`;
+      vehicleDetailsContentEl.textContent = JSON.stringify(vehicleData, null, 2);
+      // Scroll to details section
+      vehicleDetailsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
 
@@ -116,15 +127,27 @@ if (isMobileDevice()) {
         const anomaly = data.anomaly ?? false;
         const anomalyType = data.anomalyType ?? data.anomaly_type ?? null;
 
+        // Guardar los datos completos del vehículo
+        if (vehicleId && vehicleId !== '-') {
+          vehicleDataMap.set(vehicleId, data);
+        }
+
         const row = document.createElement("tr");
         const targetBody = anomaly ? anomalyBody : tableBody;
         
-        // Apply Tailwind classes based on anomaly status
+        // Apply Tailwind classes based on anomaly status and make it clickable
         if (anomaly) {
-          row.className = "bg-red-900/20 hover:bg-red-900/30 border-l-4 border-red-500 transition-colors";
+          row.className = "bg-red-900/20 hover:bg-red-900/30 border-l-4 border-red-500 transition-colors cursor-pointer";
         } else {
-          row.className = "bg-slate-800/50 hover:bg-slate-700/50 border-l-4 border-green-500 transition-colors";
+          row.className = "bg-slate-800/50 hover:bg-slate-700/50 border-l-4 border-green-500 transition-colors cursor-pointer";
         }
+
+        // Agregar evento click para mostrar detalles
+        row.addEventListener('click', () => {
+          if (vehicleId && vehicleId !== '-') {
+            showVehicleDetails(vehicleId);
+          }
+        });
 
         row.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-200">${formatValue(vehicleId)}</td>
