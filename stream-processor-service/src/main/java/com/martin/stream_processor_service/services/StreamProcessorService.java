@@ -33,10 +33,7 @@ public class StreamProcessorService {
                 .subscribe(
                         response -> {
                             try {
-                                // Parse the response JSON
                                 PredictionResponse predictionResponse = mapper.readValue(response, PredictionResponse.class);
-
-                                // Extract the input field and map it to VehicleData
                                 VehicleData vehicleData = mapper.convertValue(predictionResponse.getInput(), VehicleData.class);
 
                                 // Copy missing fields from the original data
@@ -47,14 +44,7 @@ public class StreamProcessorService {
                                 vehicleData.setAnomaly(predictionResponse.isAnomaly());
                                 vehicleData.setAnomalyType(data.getAnomalyType());
 
-                                // Send the telemetry data
                                 wsHandler.sendTelemetry(vehicleData);
-                                log.info("--------------------------------");
-                                log.info("Received VehicleData: {}", data);
-                                log.info("--------------------------------");
-                                log.info("Prediction Response: {}", response);
-                                log.info("--------------------------------");
-                                log.info("Sending telemetry data: {}", vehicleData);
                             } catch (Exception e) {
                                 log.error("❌ Failed to parse response to VehicleData: {}", e.getMessage());
                             }

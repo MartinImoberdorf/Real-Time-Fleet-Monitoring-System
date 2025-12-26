@@ -18,16 +18,9 @@ public class TelemetrySimulator {
 
     private final Random random = new Random();
     private final KafkaProducer kafkaProducer;
-
-    // Generamos 10 vehículos con IDs tipo "4AB843"
     private final List<String> vehicles = generateRandomVehicleIds(10);
-
-    // Estado previo para aceleración
     private final Map<String, Double> lastSpeedMap = new HashMap<>();
 
-    // --------------------------
-    // GENERADOR DE IDS
-    // --------------------------
     private List<String> generateRandomVehicleIds(int count) {
         List<String> list = new ArrayList<>();
         for (int i = 0; i < count; i++) {

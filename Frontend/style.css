@@ -1,0 +1,33 @@
+/* Scrollbars transparentes para WebKit (Chrome, Safari, Edge) */
+.transparent-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.transparent-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.transparent-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.transparent-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.transparent-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+/* Scrollbars transparentes para Firefox */
+.transparent-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.transparent-scrollbar:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
