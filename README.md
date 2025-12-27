@@ -49,6 +49,7 @@ The **WebSocket Gateway** ensures seamless real-time data delivery to the end us
 The **Frontend Client** provides a lightweight yet powerful monitoring dashboard built with vanilla JavaScript and the native WebSocket API. It focuses on high-frequency data visualization, rendering live telemetry trends and immediately flagging anomalies with visual alerts (such as red highlighting). This allows dispatchers or fleet managers to identify and respond to risky driving behavior or sensor failures in real time.
 
 ## Machine Learning Approach
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MartinImoberdorf/Real-Time-Fleet-Monitoring-System/blob/main/Documentation/llm/LLM_Real_Time_Fleet_Monitoring_System.ipynb)
 
 ### 1. Data Processing
 The foundation of the detection system lies in meticulous data preparation. The model evaluates critical telemetry metrics such as vehicle speed, acceleration, engine temperature, fuel levels, and local traffic conditions. To ensure accuracy, all data undergoes normalization using a **StandardScaler**. This process scales features with different magnitudes to a uniform range, preventing variables with higher absolute values from disproportionately influencing the error calculation.
