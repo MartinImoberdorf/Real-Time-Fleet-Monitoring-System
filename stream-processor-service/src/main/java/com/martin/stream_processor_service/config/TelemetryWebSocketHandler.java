@@ -12,7 +12,6 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -48,10 +47,18 @@ public class TelemetryWebSocketHandler extends TextWebSocketHandler {
             sessions.removeIf(session -> !session.isOpen());
 
             for (WebSocketSession session : sessions) {
-                try {
-                    session.sendMessage(new TextMessage(payload));
-                } catch (IOException e) {
-                    log.error("Error en sesión {}: {}", session.getId(), e.getMessage());
+                synchronized (session) {
+                    if (session.isOpen()) {
+                        try {
+                            session.sendMessage(new TextMessage(payload));
+                        } catch (IllegalStateException e) {
+                            log.error("La sesión WebSocket {} está en un estado inválido: {}", session.getId(), e.getMessage());
+                        } catch (IOException e) {
+                            log.error("Error al enviar mensaje a la sesión {}: {}", session.getId(), e.getMessage());
+                        }
+                    } else {
+                        log.warn("Sesión cerrada omitida: {}", session.getId());
+                    }
                 }
             }
         } catch (JsonProcessingException e) {

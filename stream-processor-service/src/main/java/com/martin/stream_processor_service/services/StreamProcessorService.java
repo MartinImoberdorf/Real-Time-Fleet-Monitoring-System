@@ -8,7 +8,6 @@ import com.martin.stream_processor_service.model.dto.PredictionRequest;
 import com.martin.stream_processor_service.model.dto.PredictionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +18,7 @@ import org.springframework.stereotype.Service;
 public class StreamProcessorService {
 
     private final PredictionClient predictionClient;
-    @Autowired
     private final TelemetryWebSocketHandler wsHandler;
-
     private final ObjectMapper mapper = new ObjectMapper();
 
     @KafkaListener(topics = "vehicle-telemetry", groupId = "vehicle-processor-group")
