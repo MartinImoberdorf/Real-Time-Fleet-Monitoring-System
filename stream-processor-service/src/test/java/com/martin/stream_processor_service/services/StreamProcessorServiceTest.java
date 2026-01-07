@@ -55,6 +55,8 @@ public class StreamProcessorServiceTest {
 
     private static final String TOPIC = "vehicle-telemetry";
 
+    // Integration Test
+
     @Test
     void shouldConsumeVehicleData() throws Exception{
 
@@ -114,4 +116,175 @@ public class StreamProcessorServiceTest {
         assertThat(sent.isAnomaly()).isFalse();
     }
 
+
+    @Test
+    void shouldConsumeVehicleWithAnomaly() throws Exception{
+
+        VehicleData data = VehicleData.builder()
+                .vehicleId("vehicle123")
+                .timestamp(Instant.now())
+                .latitude(37.7749)
+                .longitude(-122.4194)
+                .speed(80.0)
+                .previousSpeed(75.0)
+                .acceleration(0.5)
+                .temperature(22.5)
+                .battery(85.0)
+                .fuelLevel(50.0)
+                .weather("clear")
+                .roadType("highway")
+                .speedLimit(100.0)
+                .night(false)
+                .trafficLevel(2)
+                .build();
+
+        PredictionRequest predictionRequest =
+                PredictionRequest.fromVehicleData(data);
+
+        String mlResponseJson = objectMapper.writeValueAsString(
+                Map.of(
+                        "input", predictionRequest,
+                        "reconstruction_error", 50.12,
+                        "anomaly_threshold", 36.7,
+                        "is_anomaly", true
+                )
+        );
+
+
+
+        Mockito.when(predictionClient.predict(Mockito.any()))
+                .thenReturn(Mono.just(mlResponseJson));
+
+        kafkaTemplate.send(TOPIC, data);
+        kafkaTemplate.flush();
+
+        ArgumentCaptor<VehicleData> captor =
+                ArgumentCaptor.forClass(VehicleData.class);
+
+        Awaitility.await()
+                .atMost(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    Mockito.verify(predictionClient, Mockito.atLeastOnce())
+                            .predict(Mockito.any());
+
+                    Mockito.verify(wsHandler, Mockito.atLeastOnce())
+                            .sendTelemetry(captor.capture());
+                });
+
+        VehicleData sent = captor.getValue();
+        assertThat(sent.getVehicleId()).isEqualTo("vehicle123");
+        assertThat(sent.isAnomaly()).isTrue();
+    }
+
+    // Unit with Mocks
+
+    @Test
+    void shouldMLGiveAnError() throws Exception{
+
+        VehicleData data = VehicleData.builder()
+                .vehicleId("vehicle123")
+                .timestamp(Instant.now())
+                .latitude(37.7749)
+                .longitude(-122.4194)
+                .speed(80.0)
+                .previousSpeed(75.0)
+                .acceleration(0.5)
+                .temperature(22.5)
+                .battery(85.0)
+                .fuelLevel(50.0)
+                .weather("clear")
+                .roadType("highway")
+                .speedLimit(100.0)
+                .night(false)
+                .trafficLevel(2)
+                .build();
+
+        PredictionRequest predictionRequest =
+                PredictionRequest.fromVehicleData(data);
+
+        String mlResponseJson = objectMapper.writeValueAsString(
+                Map.of(
+                        "input", predictionRequest,
+                        "reconstruction_error", 50.12,
+                        "anomaly_threshold", 36.7,
+                        "is_anomaly", true
+                )
+        );
+
+
+
+        Mockito.when(predictionClient.predict(Mockito.any()))
+                .thenReturn(Mono.error(new RuntimeException("ML down")));
+
+
+        kafkaTemplate.send(TOPIC, data);
+        kafkaTemplate.flush();
+
+
+        Awaitility.await()
+                .atMost(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    Mockito.verify(wsHandler, Mockito.never())
+                            .sendTelemetry(Mockito.any());
+                });
+
+    }
+
+
+    @Test
+    void shouldMLResponseAInvalidJSON() throws Exception{
+
+        VehicleData data = VehicleData.builder()
+                .vehicleId("vehicle123")
+                .timestamp(Instant.now())
+                .latitude(37.7749)
+                .longitude(-122.4194)
+                .speed(80.0)
+                .previousSpeed(75.0)
+                .acceleration(0.5)
+                .temperature(22.5)
+                .battery(85.0)
+                .fuelLevel(50.0)
+                .weather("clear")
+                .roadType("highway")
+                .speedLimit(100.0)
+                .night(false)
+                .trafficLevel(2)
+                .build();
+
+        PredictionRequest predictionRequest =
+                PredictionRequest.fromVehicleData(data);
+
+        String mlResponseJson = objectMapper.writeValueAsString(
+                Map.of(
+                        "input", predictionRequest,
+                        "reconstruction_error", 50.12,
+                        "anomaly_threshold", 36.7,
+                        "is_anomaly", true
+                )
+        );
+
+
+
+        Mockito.when(predictionClient.predict(Mockito.any()))
+                .thenReturn(Mono.just("{ invalid json "));
+
+
+        kafkaTemplate.send(TOPIC, data);
+        kafkaTemplate.flush();
+
+
+        Awaitility.await()
+                .atMost(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    Mockito.verify(wsHandler, Mockito.never())
+                            .sendTelemetry(Mockito.any());
+                });
+
+    }
+
+
+
 }
+
+
