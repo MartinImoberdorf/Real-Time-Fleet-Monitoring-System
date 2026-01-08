@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.KafkaContainer;
@@ -30,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 @SpringBootTest
 @Testcontainers
-public class StreamProcessorServiceTest {
+class StreamProcessorServiceTest {
 
     @Container
     static KafkaContainer kafka =
@@ -59,7 +58,6 @@ public class StreamProcessorServiceTest {
 
     @Test
     void shouldConsumeVehicleData() throws Exception{
-
         VehicleData data = VehicleData.builder()
                 .vehicleId("vehicle123")
                 .timestamp(Instant.now())
@@ -119,7 +117,6 @@ public class StreamProcessorServiceTest {
 
     @Test
     void shouldConsumeVehicleWithAnomaly() throws Exception{
-
         VehicleData data = VehicleData.builder()
                 .vehicleId("vehicle123")
                 .timestamp(Instant.now())
@@ -179,8 +176,7 @@ public class StreamProcessorServiceTest {
     // Unit with Mocks
 
     @Test
-    void shouldMLGiveAnError() throws Exception{
-
+    void shouldMLGiveAnError(){
         VehicleData data = VehicleData.builder()
                 .vehicleId("vehicle123")
                 .timestamp(Instant.now())
@@ -199,27 +195,11 @@ public class StreamProcessorServiceTest {
                 .trafficLevel(2)
                 .build();
 
-        PredictionRequest predictionRequest =
-                PredictionRequest.fromVehicleData(data);
-
-        String mlResponseJson = objectMapper.writeValueAsString(
-                Map.of(
-                        "input", predictionRequest,
-                        "reconstruction_error", 50.12,
-                        "anomaly_threshold", 36.7,
-                        "is_anomaly", true
-                )
-        );
-
-
-
         Mockito.when(predictionClient.predict(Mockito.any()))
                 .thenReturn(Mono.error(new RuntimeException("ML down")));
 
-
         kafkaTemplate.send(TOPIC, data);
         kafkaTemplate.flush();
-
 
         Awaitility.await()
                 .atMost(3, TimeUnit.SECONDS)
@@ -227,13 +207,11 @@ public class StreamProcessorServiceTest {
                     Mockito.verify(wsHandler, Mockito.never())
                             .sendTelemetry(Mockito.any());
                 });
-
     }
 
 
     @Test
-    void shouldMLResponseAInvalidJSON() throws Exception{
-
+    void shouldMLResponseAInvalidJSON(){
         VehicleData data = VehicleData.builder()
                 .vehicleId("vehicle123")
                 .timestamp(Instant.now())
@@ -252,27 +230,11 @@ public class StreamProcessorServiceTest {
                 .trafficLevel(2)
                 .build();
 
-        PredictionRequest predictionRequest =
-                PredictionRequest.fromVehicleData(data);
-
-        String mlResponseJson = objectMapper.writeValueAsString(
-                Map.of(
-                        "input", predictionRequest,
-                        "reconstruction_error", 50.12,
-                        "anomaly_threshold", 36.7,
-                        "is_anomaly", true
-                )
-        );
-
-
-
         Mockito.when(predictionClient.predict(Mockito.any()))
                 .thenReturn(Mono.just("{ invalid json "));
 
-
         kafkaTemplate.send(TOPIC, data);
         kafkaTemplate.flush();
-
 
         Awaitility.await()
                 .atMost(3, TimeUnit.SECONDS)

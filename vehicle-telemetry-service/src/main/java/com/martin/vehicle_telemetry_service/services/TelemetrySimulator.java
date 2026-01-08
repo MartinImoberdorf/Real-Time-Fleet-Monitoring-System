@@ -92,6 +92,12 @@ public class TelemetrySimulator {
                     anomaly = true;
                     anomalyType = "battery_low";
                 }
+                default -> {
+                    battery = 10 + secureRandom.nextDouble() * 10;
+                    anomaly = false;
+                    anomalyType = "";
+
+                }
             }
         }
 

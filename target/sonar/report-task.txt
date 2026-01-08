@@ -2,5 +2,5 @@ projectKey=Real-Time-Fleet
 serverUrl=http://localhost:9001
 serverVersion=25.12.0.117093
 dashboardUrl=http://localhost:9001/dashboard?id=Real-Time-Fleet
-ceTaskId=59522e05-c8bd-4fb8-9a6d-d557bdbaffe4
-ceTaskUrl=http://localhost:9001/api/ce/task?id=59522e05-c8bd-4fb8-9a6d-d557bdbaffe4
+ceTaskId=89079350-9b45-4674-9dab-8713e9bbcfb0
+ceTaskUrl=http://localhost:9001/api/ce/task?id=89079350-9b45-4674-9dab-8713e9bbcfb0
