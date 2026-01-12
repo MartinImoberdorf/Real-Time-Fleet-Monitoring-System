@@ -246,7 +246,43 @@ class StreamProcessorServiceTest {
     }
 
 
+    @Test
+    void shouldHandleEmptyMLResponse(){
+        VehicleData data = VehicleData.builder()
+                .vehicleId("vehicle123")
+                .timestamp(Instant.now())
+                .latitude(37.7749)
+                .longitude(-122.4194)
+                .speed(80.0)
+                .previousSpeed(75.0)
+                .acceleration(0.5)
+                .temperature(22.5)
+                .battery(85.0)
+                .fuelLevel(50.0)
+                .weather("clear")
+                .roadType("highway")
+                .speedLimit(100.0)
+                .night(false)
+                .trafficLevel(2)
+                .build();
 
+        Mockito.when(predictionClient.predict(Mockito.any()))
+                .thenReturn(Mono.just(""));
+
+        kafkaTemplate.send(TOPIC, data);
+        kafkaTemplate.flush();
+
+        Awaitility.await()
+                .atMost(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    // Verificar que no se envia telemetria
+                    Mockito.verify(wsHandler, Mockito.never())
+                            .sendTelemetry(Mockito.any());
+                    // Verificar que el cliente ML fue llamado
+                    Mockito.verify(predictionClient, Mockito.atLeastOnce())
+                            .predict(Mockito.any());
+                });
+    }
 }
 
 
